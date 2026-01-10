@@ -4,7 +4,7 @@
   merges:
     - origin 18.0
     - origin refs/pull/1/head
-    # - origin refs/pull/2/head
+    - origin refs/pull/2/head
 
 ./kanda-private:
   remotes:
