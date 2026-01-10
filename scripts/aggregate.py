@@ -18,9 +18,7 @@ def is_dirty(repo: Path) -> bool:
 
 
 def ensure_token_origin(repo: Path, token: str):
-    """
-    push が Username を聞きに行かないように、origin を必ず token付きHTTPS にする
-    """
+    """pushが Username を聞きに行かないように origin を token付きHTTPS にする"""
     url = sh("git", "remote", "get-url", "origin", cwd=repo)
 
     if url.startswith("git@github.com:"):
@@ -29,10 +27,34 @@ def ensure_token_origin(repo: Path, token: str):
         url = "https://github.com/" + url[len("ssh://git@github.com/"):]
 
     if url.startswith("https://github.com/"):
-        url = url.replace("https://github.com/",
-                          f"https://x-access-token:{token}@github.com/", 1)
+        url = url.replace("https://github.com/", f"https://x-access-token:{token}@github.com/", 1)
 
     run("git", "remote", "set-url", "origin", url, cwd=repo)
+
+
+def configure_submodules_token_urls(repo: Path, token: str):
+    """
+    .gitmodules の SSH URL を、ローカル設定(.git/config)側で token付きHTTPS に上書きする。
+    これにより `git submodule update` が SSH を使わなくなる。
+    ※コミットはされない（workdir内だけ）
+    """
+    # .gitmodules から submodule.*.url を列挙
+    out = sh("git", "config", "-f", ".gitmodules", "--get-regexp", r"^submodule\..*\.url$", cwd=repo)
+    for line in out.splitlines():
+        key, url = line.split(None, 1)     # 例: submodule.knd-oca.url git@github.com:...
+        name = key.split(".")[1]           # knd-oca
+
+        url = url.strip()
+        if url.startswith("git@github.com:"):
+            url = "https://github.com/" + url[len("git@github.com:"):]
+        elif url.startswith("ssh://git@github.com/"):
+            url = "https://github.com/" + url[len("ssh://git@github.com/"):]
+
+        if url.startswith("https://github.com/"):
+            url = url.replace("https://github.com/", f"https://x-access-token:{token}@github.com/", 1)
+
+        # submodule.<name>.url をローカル config に上書き
+        run("git", "config", f"submodule.{name}.url", url, cwd=repo)
 
 
 def main():
@@ -43,10 +65,8 @@ def main():
     if not token:
         raise SystemExit("AGG_PAT is required")
 
-    do_push = os.environ.get("DO_PUSH", "true").lower() == "true"
-
-    cfg_text = Path(sys.argv[1]).read_text(encoding="utf-8")
-    data = yaml.safe_load(cfg_text) or {}
+    cfg = Path(sys.argv[1]).read_text(encoding="utf-8")
+    data = yaml.safe_load(cfg) or {}
     if not isinstance(data, dict):
         raise SystemExit("repos.yml top level must be a mapping")
 
@@ -60,58 +80,42 @@ def main():
     run("rm", "-rf", str(work))
     work.mkdir()
 
-    # 対話プロンプトを禁止（認証が効いていないときに固まらない）
     os.environ["GIT_TERMINAL_PROMPT"] = "0"
-
-    # ★最重要：SSH/HTTPS をすべて “PAT付きHTTPS” に強制変換
-    # submodule が git@github.com:... のままでも、clone/update が HTTPS+PAT で通るようになる
-    run("git", "config", "--global",
-        f"url.https://x-access-token:{token}@github.com/.insteadOf", "https://github.com/")
-    run("git", "config", "--global",
-        f"url.https://x-access-token:{token}@github.com/.insteadOf", "git@github.com:")
-    run("git", "config", "--global",
-        f"url.https://x-access-token:{token}@github.com/.insteadOf", "ssh://git@github.com/")
-
     run("git", "config", "--global", "user.name", "aggregate-bot")
     run("git", "config", "--global", "user.email", "aggregate-bot@users.noreply.github.com")
 
-    # 1) clone
+    # clone → aggregate
     for d, url in repos:
         run("git", "clone", url, str(work / d))
 
-    # 2) aggregate
-    (work / "repos.yml").write_text(cfg_text, encoding="utf-8")
+    (work / "repos.yml").write_text(cfg, encoding="utf-8")
     run("gitaggregate", "-c", "repos.yml", cwd=work)
 
-    # 3) submodule を持たない repo を先に push
+    # 1) submodule を持たない repo を先に push
     for d, _ in repos:
         repo = work / d
         if (repo / ".gitmodules").exists():
             continue
-        if do_push:
-            ensure_token_origin(repo, token)
-            run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=repo)
-        else:
-            print(f"[DRY] skip push: {d}")
+        ensure_token_origin(repo, token)
+        run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=repo)
 
-    # 4) submodule repo は最後に update → commit → push（1回）
+    # 2) submodule repo は最後に submodule update → commit → push（1回）
     for d, _ in repos:
         repo = work / d
         if not (repo / ".gitmodules").exists():
             continue
 
-        # sync はしない（.gitmodules の SSH に戻されやすいので）
+        # ★ここが肝：submodule URL を token付きHTTPS に上書きしてから update
+        configure_submodules_token_urls(repo, token)
+
         run("git", "submodule", "update", "--init", "--remote", cwd=repo)
 
         if is_dirty(repo):
             run("git", "add", "-A", cwd=repo)
             run("git", "commit", "-m", "update submodule", cwd=repo)
 
-        if do_push:
-            ensure_token_origin(repo, token)
-            run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=repo)
-        else:
-            print(f"[DRY] skip push: {d}")
+        ensure_token_origin(repo, token)
+        run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=repo)
 
 
 if __name__ == "__main__":
