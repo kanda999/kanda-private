@@ -31,13 +31,14 @@ def main():
     run("rm", "-rf", str(work))
     work.mkdir()
 
-    # token をURLに埋めない（ログ漏れしにくい）
+    # token をURLに埋めない（ただし Actions のログには出にくい設定）
     run("git", "config", "--global",
         f"url.https://x-access-token:{token}@github.com/.insteadOf", "https://github.com/")
     run("git", "config", "--global",
-    "url.https://github.com/.insteadOf", "git@github.com:")
+        f"url.https://x-access-token:{token}@github.com/.insteadOf", "git@github.com:")
     run("git", "config", "--global",
-    "url.https://github.com/.insteadOf", "ssh://git@github.com/")
+        f"url.https://x-access-token:{token}@github.com/.insteadOf", "ssh://git@github.com/")
+
     run("git", "config", "--global", "user.name", "aggregate-bot")
     run("git", "config", "--global", "user.email", "aggregate-bot@users.noreply.github.com")
 
