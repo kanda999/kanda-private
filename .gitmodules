@@ -1,0 +1,4 @@
+[submodule "kns-oca"]
+	path = kns-oca
+	url = git@github.com:kanda999/kns-oca.git
+	branch = 18.0
