@@ -1,0 +1,29 @@
+name: gitaggregate (auto)
+
+on:
+  push:
+    branches: [ "aggregate-config" ]
+    paths:
+      - "repos.yml"
+      - "scripts/**"
+      - ".github/workflows/**"
+
+concurrency:
+  group: aggregate-config
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install git-aggregator pyyaml
+
+      - env:
+          AGG_PAT: ${{ secrets.AGGREGATOR_PAT }}
+        run: python scripts/aggregate.py repos.yml

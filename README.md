@@ -1,2 +1,0 @@
-# kanda-private
-# knd-oca
