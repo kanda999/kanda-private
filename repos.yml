@@ -8,7 +8,7 @@
 
 ./kanda-private:
   remotes:
-    origin: https://github.com/qrtl/kanda-private.git
+    origin: https://github.com/kanda999/kanda-private.git
   merges:
     - origin 18.0
     - origin refs/pull/1/head
