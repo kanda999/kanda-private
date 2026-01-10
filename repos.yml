@@ -1,14 +1,14 @@
 ./knd-oca:
   remotes:
-    origin: https://github.com/qrtl/kns-oca.git
+    origin: https://github.com/kanda999/knd-oca.git
   merges:
     - origin 18.0
     - origin refs/pull/1/head
     - origin refs/pull/2/head
 
-./kns-private:
+./kanda-private:
   remotes:
-    origin: https://github.com/qrtl/kns-private.git
+    origin: https://github.com/qrtl/kanda-private.git
   merges:
     - origin 18.0
     - origin refs/pull/1/head
