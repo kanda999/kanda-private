@@ -33,27 +33,28 @@ def main():
     run("git", "config", "--global", "user.name", "aggregate-bot")
     run("git", "config", "--global", "user.email", "aggregate-bot@users.noreply.github.com")
 
-    # clone → aggregate → push
-    for d, url in repos:
-        run("git", "clone", url, str(work / d))
-
-    (work / "repos.yml").write_text(cfg, encoding="utf-8")
-    run("gitaggregate", "-c", "repos.yml", cwd=work)
-
+    # 1st pass: submodule を持たない repo だけ先に push
     for d, _ in repos:
-        run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=work / d)
+        repo = work / d
+        if (repo / ".gitmodules").exists():
+            continue  # ★ submodule repo は最後に回す
+        run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=repo)
 
-    # submodule がある repo だけ update & commit
+    # 2nd pass: submodule repo は submodule 更新→必要ならcommit→最後に push
     for d, _ in repos:
         repo = work / d
         if not (repo / ".gitmodules").exists():
             continue
+
         run("git", "submodule", "update", "--init", "--remote", cwd=repo)
+
         dirty = subprocess.call(["git", "diff", "--quiet"], cwd=repo) != 0
         if dirty:
             run("git", "add", "-A", cwd=repo)
             run("git", "commit", "-m", "update submodule", cwd=repo)
-            run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=repo)
+
+        # ★ dirty でなくても、aggregate 結果は反映したいので push は必ずする
+        run("git", "push", "origin", "HEAD:_git_aggregated", "--force-with-lease", cwd=repo)
 
 if __name__ == "__main__":
     main()
