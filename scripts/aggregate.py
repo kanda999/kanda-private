@@ -82,10 +82,27 @@ def main():
     run("gitaggregate", "-c", "repos.yml", cwd=repo)
     run("rm", "-f", "repos.yml", cwd=repo)
 
-    # # 差分が無ければ push しない（無駄ビルド防止）
-    # if subprocess.call(["git", "status", "--porcelain"], cwd=repo) == 0:
-    #     print("No changes. Skip commit/push.")
-    #     return
+    # 生成前：index上の gitlink を消す + 作業ツリー掃除
+    subprocess.call(["git", "rm", "-f", "--cached", "addons/oca", "addons/custom", "addons/private"], cwd=repo)
+    rm_tree(repo / "addons/oca")
+    rm_tree(repo / "addons/custom")
+    rm_tree(repo / "addons/private")
+
+    # 生成
+    (repo / "repos.yml").write_text(cfg_text, encoding="utf-8")
+    run("gitaggregate", "-c", "repos.yml", cwd=repo)
+    run("rm", "-f", "repos.yml", cwd=repo)
+
+    # ★ここが肝：内側 .git を削除して “普通のファイルツリー” にする
+    rm_tree(repo / "addons/oca/.git")
+    rm_tree(repo / "addons/custom/.git")
+    rm_tree(repo / "addons/private/.git")
+
+
+    # 差分が無ければ push しない（無駄ビルド防止）
+    if subprocess.call(["git", "status", "--porcelain"], cwd=repo) == 0:
+        print("No changes. Skip commit/push.")
+        return
 
     run("git", "add", "-A", cwd=repo)
     run("git", "commit", "-m", commit_message, cwd=repo)
