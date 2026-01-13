@@ -1,4 +1,4 @@
-./knd-oca:
+./addons/oca:
   remotes:
     origin: https://github.com/kanda999/knd-oca.git
   merges:
@@ -6,9 +6,9 @@
     - origin refs/pull/1/head
     # - origin refs/pull/2/head
 
-./kanda-private:
+./addons/private:
   remotes:
     origin: https://github.com/kanda999/kanda-private.git
   merges:
     - origin 18.0
-    - origin refs/pull/2/head
+    # - origin refs/pull/2/head
