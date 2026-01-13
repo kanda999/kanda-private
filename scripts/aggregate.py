@@ -99,10 +99,10 @@ def main():
     rm_tree(repo / "addons/private/.git")
 
 
-    # 差分が無ければ push しない（無駄ビルド防止）
-    if subprocess.call(["git", "status", "--porcelain"], cwd=repo) == 0:
-        print("No changes. Skip commit/push.")
-        return
+    # # 差分が無ければ push しない（無駄ビルド防止）
+    # if subprocess.call(["git", "status", "--porcelain"], cwd=repo) == 0:
+    #     print("No changes. Skip commit/push.")
+    #     return
 
     run("git", "add", "-A", cwd=repo)
     run("git", "commit", "-m", commit_message, cwd=repo)
