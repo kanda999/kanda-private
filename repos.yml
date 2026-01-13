@@ -4,6 +4,14 @@
   merges:
     - origin 18.0
     - origin refs/pull/1/head
+    - origin refs/pull/2/head
+
+./addons/custom:
+  remotes:
+    origin: https://github.com/kanda999/knd-custom.git
+  merges:
+    - origin 18.0
+    - origin refs/pull/1/head
     # - origin refs/pull/2/head
 
 ./addons/private:
@@ -11,4 +19,5 @@
     origin: https://github.com/kanda999/kanda-private.git
   merges:
     - origin 18.0
-    # - origin refs/pull/2/head
+    - origin refs/pull/3/head
+    - origin refs/pull/4/head
