@@ -35,4 +35,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_BRANCH: "_git_aggregated"
           COMMIT_MESSAGE: "update addons"
-        run: python scripts/aggregate_to_branch.py repos.yml
+        run: python scripts/aggregate.py repos.yml
