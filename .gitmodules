@@ -1,4 +1,0 @@
-[submodule "knd-oca"]
-	path = knd-oca
-	url = git@github.com:kanda999/knd-oca.git
-	branch = _git_aggregated
