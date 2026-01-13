@@ -1,4 +1,4 @@
-name: gitaggregate (auto)
+name: Update _git_aggregated (addons materialized)
 
 on:
   push:
@@ -15,8 +15,13 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # GITHUB_TOKEN で push する場合に必要
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -24,6 +29,10 @@ jobs:
 
       - run: pip install git-aggregator pyyaml
 
-      - env:
-          AGG_PAT: ${{ secrets.AGGREGATOR_PAT }}
-        run: python scripts/aggregate.py repos.yml
+      - name: Build addons and push to _git_aggregated
+        env:
+          # シンプル案：GITHUB_TOKEN で NNN-private に push
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_BRANCH: "_git_aggregated"
+          COMMIT_MESSAGE: "update addons"
+        run: python scripts/aggregate_to_branch.py repos.yml
